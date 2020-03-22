@@ -1,1 +1,1 @@
-# CS4225
+# MapReduce-based Federated Learning for Landmark Recognition
