@@ -1,0 +1,33 @@
+= MapReduce-based Federated Learning for Landmark Recognition
+
+:toc:
+:toc-title:
+:toc-placement: preamble
+:sectnums:
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:warning-caption: :warning:
+endif::[]
+
+By: `Team`
+
+== Data Preprocessing
+
+=== Python
+
+Example of use:
+
+`python preprocess.py -d train.csv -p D:\your\target\path`
+
+* -d/--data: the data file path.
+* -s/--data_set: `train`, `index`, or `test`.
+* -p/--path: the path where to download the images.
+* -c/--clear: `True` if the specified directory is to be cleared, otherwise `False`.
+* -u/--upper: The upper bound of number of images in each category.
+* -l/--lower: The lower bound of number of images in each category.
+* -m/--max_categories: The number of categories to be sampled.
+* -n/--num_machines: The number of machines.
+* -r/--random_state: The random state.
+
+For more details, refer to the https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/data_preprocessing/preprocess.py[Source Code].
