@@ -21,5 +21,19 @@ An executor stays up for the duration of the Spark Application and runs the task
 The number of executors for a spark application can be specified inside the SparkConf 
 or via the flag –num-executors from command-line.
 
+## Worker
+Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
+```buildoutcfg
+import worker
+TRAIN_DIR = 'path/to/train_data'
+VAL_DIR = 'path/to/val_data'
+model = worker.Worker(TRAIN_DIR, VAL_DIR)
+
+# First epoch
+loss, val_loss, weight_dict = model.train(new_weight=None)
+
+# Subsequent epochs
+loss, val_loss, weight_dict = model.train(new_weight=updated_weight)
+```
 ## References
 [Spark structure post](http://site.clairvoyantsoft.com/understanding-resource-allocation-configurations-spark-application/)
