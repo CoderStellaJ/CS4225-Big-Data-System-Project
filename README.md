@@ -42,4 +42,4 @@ Example of use:
 * -n/--num_machines: The number of machines.
 * -r/--random_state: The random state.
 
-For more details, refer to the [Source Code](https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/data_preprocessing/preprocess.py).
+For more details, refer to the [Source Code](https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess.py).
