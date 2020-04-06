@@ -43,3 +43,18 @@ Example of use:
 * -r/--random_state: The random state.
 
 For more details, refer to the [Source Code](https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess.py).
+
+## Worker
+Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
+```buildoutcfg
+import worker
+TRAIN_DIR = 'path/to/train_data'
+VAL_DIR = 'path/to/val_data'
+model = worker.Worker(TRAIN_DIR, VAL_DIR)
+
+# First epoch
+loss, val_loss, weight_dict = model.train(new_weight=None)
+
+# Subsequent epochs
+loss, val_loss, weight_dict = model.train(new_weight=updated_weight)
+```
