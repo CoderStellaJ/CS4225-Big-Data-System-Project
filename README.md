@@ -1,6 +1,6 @@
 # MapReduce-based Federated Learning for Landmark Recognition
 
-## 1. Parts of Spark
+## Parts of Spark
 ![alt text](./imgs/spark_structure.png)
 
 * Partitions
@@ -21,10 +21,31 @@ An executor stays up for the duration of the Spark Application and runs the task
 The number of executors for a spark application can be specified inside the SparkConf
 or via the flag –num-executors from command-line.
 
-### References
-[Spark structure post](http://site.clairvoyantsoft.com/understanding-resource-allocation-configurations-spark-application/)
+## Master
+```buildoutcfg
+sc.parallelize()
+```
+https://medium.com/parrot-prediction/partitioning-in-apache-spark-8134ad840b0
 
-## 2. Data Preprocessing
+## Worker
+Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
+```buildoutcfg
+import worker
+TRAIN_DIR = 'path/to/train_data'
+VAL_DIR = 'path/to/val_data'
+model = worker.Worker(TRAIN_DIR, VAL_DIR)
+
+# First epoch
+loss, val_loss, weight_dict = model.train(new_weight=None)
+
+# Subsequent epochs
+loss, val_loss, weight_dict = model.train(new_weight=updated_weight)
+```
+
+## Cluster in Azure
+http://spark.apache.org/docs/latest/spark-standalone.html
+
+## Data Preprocessing
 
 ### 1. Python
 
@@ -44,17 +65,12 @@ Example of use:
 
 For more details, refer to the [Source Code](https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess.py).
 
-## Worker
-Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
-```buildoutcfg
-import worker
-TRAIN_DIR = 'path/to/train_data'
-VAL_DIR = 'path/to/val_data'
-model = worker.Worker(TRAIN_DIR, VAL_DIR)
 
-# First epoch
-loss, val_loss, weight_dict = model.train(new_weight=None)
 
-# Subsequent epochs
-loss, val_loss, weight_dict = model.train(new_weight=updated_weight)
-```
+### References
+1. [Spark structure post](http://site.clairvoyantsoft.com/understanding-resource-allocation-configurations-spark-application/)
+2. https://github.com/ybdesire/machinelearning/tree/master/16_spark/file_process_distributed
+3. [How does Spark work?](https://data-flair.training/blogs/how-apache-spark-works/)
+4. [Spark Cluster](http://spark.apache.org/docs/latest/cluster-overview.html)
+
+
