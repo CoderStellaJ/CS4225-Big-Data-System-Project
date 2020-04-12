@@ -5,7 +5,12 @@ from elephas.spark_model import SparkModel
 # parameters
 NUM_MACHINE = 5
 
+
 # different federated settings
+
+def data_partitioner(country):
+    return hash(country)
+
 def to_simple_rdd(sc, features, labels):
     """Convert numpy arrays of features and labels into
     an RDD of pairs.
@@ -25,6 +30,10 @@ sc = SparkContext(conf=conf)
 
 # partition input data
 rdd = to_simple_rdd(sc, x_train, y_train)
+
+print("Number of partitions: {}".format(rdd.getNumPartitions()))
+print("Partitioner: {}".format(rdd.partitioner))
+print("Partitions structure: {}".format(rdd.glom().collect()))
 
 # train keras model
 

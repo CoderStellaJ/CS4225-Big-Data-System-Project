@@ -1,4 +1,4 @@
-# MapReduce-based Federated Learning for Landmark Recognition
+# Spark-based Federated Learning for Landmark Recognition
 
 ## Parts of Spark
 ![alt text](./imgs/spark_structure.png)
@@ -21,13 +21,14 @@ An executor stays up for the duration of the Spark Application and runs the task
 The number of executors for a spark application can be specified inside the SparkConf
 or via the flag –num-executors from command-line.
 
-## Master
-```buildoutcfg
-sc.parallelize()
-```
+## Federated data
+different settings of `parallelize()` are implemented for data partitions 
+to examine how data size and distribution affects the results of federated learning 
+
+
 https://medium.com/parrot-prediction/partitioning-in-apache-spark-8134ad840b0
 
-## Worker
+## Deep learning
 Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
 ```buildoutcfg
 import worker
