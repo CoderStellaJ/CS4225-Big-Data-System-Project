@@ -113,6 +113,6 @@ model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy
 
 # Create SPARK model
 spark_model = SparkModel(model, frequency='epoch', mode='asynchronous')
-spark_model.fit(rdd, epochs=20, batch_size=32, verbose=0, validation_split=0.1)
+spark_model.fit(rdd, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
 
 
