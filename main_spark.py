@@ -13,6 +13,7 @@ import skimage.transform
 from sklearn.utils import shuffle
 from matplotlib import pyplot as plt
 from PIL import Image
+import customElephas
 
 # Data directory
 DATA_DIR = '/path/to/data'
@@ -150,6 +151,7 @@ model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy
 
 # Create SPARK model
 spark_model = SparkModel(model, frequency='epoch', mode='asynchronous')
+#spark_model = customElephas.CustomSparkModel(model, frequency='epoch', mode='asynchronous')
 spark_model.fit(rdd, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
 
 
