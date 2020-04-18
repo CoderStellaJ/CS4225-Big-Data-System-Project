@@ -29,7 +29,31 @@ dropout = 0.5
 l1 = 0.0001
 l2 = 0.0001
 
+
+#img_width, img_height = 800,800
 img_width, img_height = 224,224
+
+# different federated settings
+
+def data_partitioner(country):
+    return hash(country)
+
+def to_simple_rdd(sc, features, labels):
+    """Convert numpy arrays of features and labels into
+    an RDD of pairs.
+
+    :param sc: Spark context
+    :param features: numpy array with features
+    :param labels: numpy array with labels
+    :return: Spark RDD with feature-label pairs
+    """
+    pairs = [(x, y) for x, y in zip(features, labels)]
+    rdd = sc.parallelize(pairs)
+    return rdd
+
+# spark
+conf = SparkConf().setAppName('Elephas_App').setMaster('local')
+sc = SparkContext(conf=conf)
 
 x_train = []
 y_train = []
@@ -99,6 +123,13 @@ print("Number of partitions: {}".format(rdd.getNumPartitions()))
 print("Partitioner: {}".format(rdd.partitioner))
 print("Partitions structure: {}".format(rdd.glom().collect()))
 
+
+print("Number of partitions: {}".format(rdd.getNumPartitions()))
+print("Partitioner: {}".format(rdd.partitioner))
+print("Partitions structure: {}".format(rdd.glom().collect()))
+
+# train keras model
+
 # create keras model
 base = applications.ResNet50(include_top=False, weights='imagenet', input_shape=(img_width, img_height, 3))
 for layer in base.layers:
@@ -119,6 +150,6 @@ model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy
 
 # Create SPARK model
 spark_model = SparkModel(model, frequency='epoch', mode='asynchronous')
-spark_model.fit(rdd, epochs=20, batch_size=32, verbose=0, validation_split=0.1)
+spark_model.fit(rdd, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
 
 
