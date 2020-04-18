@@ -1,26 +1,27 @@
 from pyspark import SparkContext, SparkConf
 # from elephas.utils.rdd_utils import to_simple_rdd
 from elephas.spark_model import SparkModel
+import tensorflow as tf
 import keras
 from keras import applications, Model
 from keras.layers import Dropout, Flatten, Dense, BatchNormalization
 import numpy as np
-from PIL import Image
 import skimage.io
 import os
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import skimage.transform
 from sklearn.utils import shuffle
-
+from matplotlib import pyplot as plt
+from PIL import Image
 
 # Data directory
-DATA_DIR = 'path/to/data'
+DATA_DIR = '/path/to/data'
 
 # SPARK parameters
-NUM_MACHINE = 5
+NUM_PARTITION = 5
 
 # DL parameters
-NB_CLASSES = 2000
+NB_CLASSES = 11
 nn1 = 1024; nn2 = 1024; nn3 = 200
 lr = 0.0001; decay=0
 batch_size = 1024
@@ -28,7 +29,50 @@ dropout = 0.5
 l1 = 0.0001
 l2 = 0.0001
 
-img_width, img_height = 800,800
+img_width, img_height = 224,224
+
+x_train = []
+y_train = []
+for landmark_class in sorted(os.listdir(DATA_DIR)):
+    if landmark_class.startswith('.'):
+      continue
+    label = landmark_class
+    #print(label)
+    # read image
+    for im in os.listdir(os.path.join(DATA_DIR, landmark_class)):
+        if im.startswith('.'):
+          continue
+        #print(im)
+        try:
+          img = Image.open(os.path.join(DATA_DIR, landmark_class, im)) # open the image file
+          img.verify()
+          image = skimage.io.imread(os.path.join(DATA_DIR, landmark_class, im))
+          if len(image.shape) == 2:
+            image = skimage.color.gray2rgb(image)
+          #print(image.shape)
+          image = skimage.transform.resize(image,(img_height,img_width,3), preserve_range=True)
+          x_train.append(image)
+          y_train.append(label)
+        except (IOError, SyntaxError) as e:
+          print('Bad file:', label, im)
+
+x_train = np.array(x_train)
+x_train = x_train.astype('float16')
+# normalize to the range 0-1
+x_train /= 255.0
+
+y_train = np.array(y_train).reshape(-1, 1)
+
+labelencoder = LabelEncoder()
+y_train = labelencoder.fit_transform(y_train)
+
+# One-hot encoding on labels
+y_train = y_train.reshape(-1, 1)
+onehotencoder = OneHotEncoder()
+y_train = onehotencoder.fit_transform(y_train).toarray()
+
+# Shuffle the order?
+x_train, y_train = shuffle(x_train, y_train)
 
 # different federated settings
 def to_simple_rdd(sc, features, labels):
@@ -41,7 +85,7 @@ def to_simple_rdd(sc, features, labels):
     :return: Spark RDD with feature-label pairs
     """
     pairs = [(x, y) for x, y in zip(features, labels)]
-    rdd = sc.parallelize(pairs)
+    rdd = sc.parallelize(pairs, NUM_PARTITION)
     return rdd
 
 # spark
@@ -49,37 +93,11 @@ conf = SparkConf().setAppName('Elephas_App').setMaster('local')
 sc = SparkContext(conf=conf)
 
 
-# Read images and create training input and label
-x_train = []
-y_train = []
-for landmark_class in sorted(os.listdir(DATA_DIR)):
-    if landmark_class.startswith('.'):
-      continue
-    label = landmark_class
-
-    # read image
-    for im in os.listdir(os.path.join(DATA_DIR, landmark_class)):
-        if im.startswith('.'):
-          continue
-
-        image = skimage.io.imread(os.path.join(DATA_DIR, landmark_class, im))
-        image = skimage.transform.resize(image,(img_height,img_width))
-        x_train.append(image)
-        y_train.append(label)
-
-x_train = np.array(x_train)
-y_train = np.array(y_train).reshape(-1, 1)
-
-# One-hot encoding on labels
-onehotencoder = OneHotEncoder()
-y_train = onehotencoder.fit_transform(y_train).toarray()
-
-
-# Shuffle the order?
-x_train, y_train = shuffle(x_train, y_train)
-
 # partition input data
 rdd = to_simple_rdd(sc, x_train, y_train)
+print("Number of partitions: {}".format(rdd.getNumPartitions()))
+print("Partitioner: {}".format(rdd.partitioner))
+print("Partitions structure: {}".format(rdd.glom().collect()))
 
 # create keras model
 base = applications.ResNet50(include_top=False, weights='imagenet', input_shape=(img_width, img_height, 3))
