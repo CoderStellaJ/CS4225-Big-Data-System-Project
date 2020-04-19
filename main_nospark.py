@@ -2,23 +2,22 @@ import tensorflow as tf
 import keras
 from keras import applications, Model
 from keras.layers import Dropout, Flatten, Dense, BatchNormalization
-import numpy as np
-import skimage.io
-import os
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-import skimage.transform
 from sklearn.utils import shuffle
-from matplotlib import pyplot as plt
-from PIL import Image
+from keras.callbacks import EarlyStopping
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Data directory
-DATA_DIR = '/path/to/data'
+DATA_DIR = './'
+X_TRAIN_PATH = './x_train.npy'
+Y_TRAIN_PATH = './y_train.npy'
+MODEL_PATH = 'trained_model.h5'
 
 # SPARK parameters
 NUM_PARTITION = 5
 
 # DL parameters
-NB_CLASSES = 11
+NB_CLASSES = 1066
 nn1 = 1024; nn2 = 1024; nn3 = 200
 lr = 0.0001; decay=0
 batch_size = 1024
@@ -30,6 +29,7 @@ img_width, img_height = 224,224
 
 x_train = []
 y_train = []
+'''
 for landmark_class in sorted(os.listdir(DATA_DIR)):
     if landmark_class.startswith('.'):
       continue
@@ -65,11 +65,16 @@ y_train = labelencoder.fit_transform(y_train)
 y_train = y_train.reshape(-1, 1)
 onehotencoder = OneHotEncoder()
 y_train = onehotencoder.fit_transform(y_train).toarray()
+'''
 
+x_train = np.load(X_TRAIN_PATH)
+y_train = np.load(Y_TRAIN_PATH)
+print(">> train data loaded")
+print("x_train shape: ", x_train.shape)
+print("y_train shape: ", y_train.shape)
 # Shuffle the order?
-#x_train, y_train = shuffle(x_train, y_train)
-
-
+x_train, y_train = shuffle(x_train, y_train)
+print(">> train data shuffled")
 # create keras model
 base = applications.ResNet50(include_top=False, weights='imagenet', input_shape=(img_width, img_height, 3))
 for layer in base.layers:
@@ -85,9 +90,35 @@ x = Dense(nn3, activation='relu', kernel_regularizer=reg)(x)
 x = BatchNormalization()(x)
 x = Dense(NB_CLASSES, activation='softmax')(x)
 model = Model(input=base.input, output=x)
+print(model.summary())
 
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-
+print(">> model compiled")
 # Train model
-model.fit(x_train, y_train, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
+overfitCallback = EarlyStopping(monitor='val_loss', min_delta=0, patience = 5, verbose=1)
+history = model.fit(x_train, y_train, batch_size=32, verbose=1, validation_split=0.2,
+          epochs=10000000, callbacks=[overfitCallback])
+print(">> model trained")
+# save model
+model.save(MODEL_PATH)
+print(">> model saved")
 
+# Plot training & validation accuracy values
+plt.plot(history.history['acc'], color='blue')
+plt.plot(history.history['val_acc'], color='green')
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.savefig('accuracy_curve.png')
+
+# Plot training & validation loss values
+plt.plot(history.history['loss'], color='blue')
+plt.plot(history.history['val_loss'], color='green')
+plt.title('Model loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.savefig('loss_curve.png')
+# trained_model = keras.models.load_model('path_to_my_model.h5')
+# predictions = trained_model.predict(x_test)
