@@ -320,8 +320,11 @@ class CustomSparkModel(object):
                                  optimizer, loss, metrics, custom)
             gradients = rdd.mapPartitions(worker.train).collect()
             new_parameters = self._master_network.get_weights()
-            for grad in gradients:  # simply accumulate gradients one by one
-                new_parameters = subtract_params(new_parameters, grad)
+            # calculate the average of grad
+            avg_grad = np.average(gradients, axis=0)
+            new_parameters = subtract_params(new_parameters, avg_grad)
+            # for grad in gradients:  # simply accumulate gradients one by one
+            #     new_parameters = subtract_params(new_parameters, grad)
             print('>>> Synchronous training complete.')
         else:
             raise ValueError("Unsupported mode {}".format(self.mode))
