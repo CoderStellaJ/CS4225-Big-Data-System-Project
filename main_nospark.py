@@ -2,6 +2,8 @@ import tensorflow as tf
 import keras
 from keras import applications, Model
 from keras.layers import Dropout, Flatten, Dense, BatchNormalization
+from keras.models import Sequential
+from keras import optimizers
 from sklearn.utils import shuffle
 from keras.callbacks import EarlyStopping
 import numpy as np
@@ -16,14 +18,6 @@ MODEL_PATH = 'trained_model.h5'
 # SPARK parameters
 NUM_PARTITION = 5
 
-# DL parameters
-NB_CLASSES = 1066
-nn1 = 1024; nn2 = 1024; nn3 = 200
-lr = 0.0001; decay=0
-batch_size = 1024
-dropout = 0.5
-l1 = 0.0001
-l2 = 0.0001
 
 img_width, img_height = 224,224
 
@@ -76,23 +70,26 @@ print("y_train shape: ", y_train.shape)
 x_train, y_train = shuffle(x_train, y_train)
 print(">> train data shuffled")
 # create keras model
-base = applications.ResNet50(include_top=False, weights='imagenet', input_shape=(img_width, img_height, 3))
-for layer in base.layers:
-    layer.trainable = False
-opt = keras.optimizers.Adam(lr=lr)
-reg = keras.regularizers.l1_l2(l1=l1, l2=l2)
-x = Flatten()(base.output)
-x = Dense(nn1, activation='relu', kernel_regularizer=reg)(x)
-x = BatchNormalization()(x)
-x = Dense(nn2, activation='relu', kernel_regularizer=reg)(x)
-x = BatchNormalization()(x)
-x = Dense(nn3, activation='relu', kernel_regularizer=reg)(x)
-x = BatchNormalization()(x)
-x = Dense(NB_CLASSES, activation='softmax')(x)
-model = Model(input=base.input, output=x)
-print(model.summary())
 
-model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+# VGG
+base_model = applications.VGG16(weights='imagenet',include_top= False,input_shape=(224,224,3))
+
+top_model = Sequential()
+top_model.add(Flatten(input_shape=base_model.output_shape[1:]))
+top_model.add(Dense(256, activation='relu'))
+top_model.add(Dense(256, activation='relu'))
+n_class = 1066
+top_model.add(Dense(n_class, activation='softmax'))
+
+model = Model(input= base_model.input, output= top_model(base_model.output))
+print(len(model.layers))
+# set the first 16 layers to non-trainable (weights will not be updated) - 1 conv layer and three dense layers will be trained
+for layer in model.layers[:16]:
+    layer.trainable = False
+
+# compile the model with a SGD/momentum optimizer and a very slow learning rate.
+model.compile(loss='categorical_crossentropy',
+              optimizer=optimizers.Adam(lr=0.0001, beta_1=0.9,beta_2=0.999,epsilon=1e-8, decay=0.0),metrics=['accuracy'])
 print(">> model compiled")
 # Train model
 overfitCallback = EarlyStopping(monitor='val_loss', min_delta=0, patience = 5, verbose=1)
