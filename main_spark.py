@@ -16,6 +16,7 @@ from sklearn.utils import shuffle
 from matplotlib import pyplot as plt
 from PIL import Image
 import customElephas
+from config import *
 
 # Data directory
 DATA_DIR = '/path/to/data'
@@ -23,27 +24,7 @@ DATA_DIR = '/path/to/data'
 # SPARK parameters
 NUM_PARTITION = 5
 
-
-#img_width, img_height = 800,800
 img_width, img_height = 224,224
-
-# different federated settings
-
-def data_partitioner(country):
-    return hash(country)
-
-def to_simple_rdd(sc, features, labels):
-    """Convert numpy arrays of features and labels into
-    an RDD of pairs.
-
-    :param sc: Spark context
-    :param features: numpy array with features
-    :param labels: numpy array with labels
-    :return: Spark RDD with feature-label pairs
-    """
-    pairs = [(x, y) for x, y in zip(features, labels)]
-    rdd = sc.parallelize(pairs)
-    return rdd
 
 # spark
 conf = SparkConf().setAppName('Elephas_App').setMaster('local')
@@ -53,9 +34,10 @@ x_train = np.load(os.path.join(DATA_DIR, 'x_train.npy'))
 y_train = np.load(os.path.join(DATA_DIR, 'y_train.npy'))
 
 # Shuffle the order?
-x_train, y_train = shuffle(x_train, y_train)
+if shuffle_data == True:
+    x_train, y_train = shuffle(x_train, y_train)
 
-# different federated settings
+# different number of partitions and different partition distribution
 def to_simple_rdd(sc, features, labels):
     """Convert numpy arrays of features and labels into
     an RDD of pairs.
@@ -66,13 +48,15 @@ def to_simple_rdd(sc, features, labels):
     :return: Spark RDD with feature-label pairs
     """
     pairs = [(x, y) for x, y in zip(features, labels)]
-    rdd = sc.parallelize(pairs, NUM_PARTITION)
+    if custom_hash == True:
+        rdd = sc.parallelize(pairs, NUM_PARTITION).cache()
+    else:
+        rdd = sc.parallelize(pairs, NUM_PARTITION).cache()
     return rdd
 
 # spark
 conf = SparkConf().setAppName('Elephas_App').setMaster('local')
 sc = SparkContext(conf=conf)
-
 
 # partition input data
 rdd = to_simple_rdd(sc, x_train, y_train)
@@ -84,8 +68,6 @@ print("Partitions structure: {}".format(rdd.glom().collect()))
 print("Number of partitions: {}".format(rdd.getNumPartitions()))
 print("Partitioner: {}".format(rdd.partitioner))
 print("Partitions structure: {}".format(rdd.glom().collect()))
-
-# train keras model
 
 # create keras model
 # VGG
@@ -109,8 +91,13 @@ model.compile(loss='categorical_crossentropy',
               optimizer=optimizers.Adam(lr=0.0001, beta_1=0.9,beta_2=0.999,epsilon=1e-8, decay=0.0),metrics=['accuracy'])
 
 # Create SPARK model
-spark_model = SparkModel(model, frequency='epoch', mode='asynchronous')
-#spark_model = customElephas.CustomSparkModel(model, frequency='epoch', mode='asynchronous')
-spark_model.fit(rdd, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
+# spark_model = SparkModel(model, frequency='epoch', mode='asynchronous')
+if sync == True:
+    spark_model = customElephas.CustomSparkModel(model, frequency='epoch', mode='synchronous')
+else:
+    spark_model = customElephas.CustomSparkModel(model, frequency='epoch', mode='asynchronous')
+
+history = spark_model.fit(rdd, epochs=20, batch_size=32, verbose=1, validation_split=0.1)
+
 
 
