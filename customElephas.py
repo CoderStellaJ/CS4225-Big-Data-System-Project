@@ -34,7 +34,7 @@ class SparkWorker(object):
         self.master_metrics = master_metrics
         self.custom_objects = custom_objects
         self.model = None
-
+  
     def train(self, data_iterator):
         """Train a keras model on a worker
         """
@@ -54,11 +54,17 @@ class SparkWorker(object):
 
         weights_before_training = self.model.get_weights()
         if x_train.shape[0] > self.train_config.get('batch_size'):
-            self.model.fit(x_train, y_train, **self.train_config)
+            history = self.model.fit(x_train, y_train, **self.train_config)
         weights_after_training = self.model.get_weights()
         deltas = subtract_params(
             weights_before_training, weights_after_training)
-        yield deltas
+        
+        acc = history.history['acc'][-1]
+        size = x_train.shape[0]
+        
+        print(acc, size)
+        
+        yield [deltas, acc, size]
 
 
 class AsynchronousSparkWorker(object):
@@ -238,6 +244,14 @@ class CustomSparkModel(object):
 
         f.flush()
         f.close()
+        
+    def scale_parameter(self, parameters, weightages):
+        result = []
+        if len(parameters) != len(weightages):
+            raise Exception("The parameters and weightages are not in equal size.")
+        for p, w in zip(parameters, weightages): 
+            result.append([layer * w for layer in p])
+        return result
 
     @property
     def master_network(self):
@@ -264,7 +278,7 @@ class CustomSparkModel(object):
         return self._master_network.predict_classes(data)
 
     def fit(self, rdd, epochs=10, batch_size=32,
-            verbose=0, validation_split=0.1):
+            verbose=0, validation_split=0.1, weightages=(0.5, 0.5)):
         """
         Train an elephas model on an RDD. The Keras model configuration as specified
         in the elephas model is sent to Spark workers, abd each worker will be trained
@@ -280,12 +294,12 @@ class CustomSparkModel(object):
             rdd = rdd.repartition(self.num_workers)
 
         if self.mode in ['asynchronous', 'synchronous', 'hogwild']:
-            self._fit(rdd, epochs, batch_size, verbose, validation_split)
+            self._fit(rdd, epochs, batch_size, verbose, validation_split, weightages)
         else:
             raise ValueError(
                 "Choose from one of the modes: asynchronous, synchronous or hogwild")
 
-    def _fit(self, rdd, epochs, batch_size, verbose, validation_split):
+    def _fit(self, rdd, epochs, batch_size, verbose, validation_split, weightages):
         """Protected train method to make wrapping of modes easier
         """
         self._master_network.compile(optimizer=self.master_optimizer,
@@ -318,8 +332,33 @@ class CustomSparkModel(object):
         elif self.mode == 'synchronous':
             worker = SparkWorker(yaml, parameters, train_config,
                                  optimizer, loss, metrics, custom)
-            gradients = rdd.mapPartitions(worker.train).collect()
+            gradients = rdd.mapPartitions(worker.train).map(lambda x: x[0]).collect()
+            
+            print(len(gradients))
             new_parameters = self._master_network.get_weights()
+            
+            if ((type(weightages) in (tuple, list)) and 
+                (len(weightages) == 2) and 
+                (type(weightages[0]) in (int, float)) and 
+                (type(weightages[1]) in (int, float)) and 
+                (sum(weightages) >= 0)): 
+            
+                # collect accuracy and size
+                accs = np.array(rdd.mapPartitions(worker.train).map(lambda x: x[1]).collect(), dtype='float64')
+                sizes = np.array(rdd.mapPartitions(worker.train).map(lambda x: x[2]).collect(), dtype='float64')
+                weights = np.array([accs, sizes])
+
+                # normalization 
+                weightages = np.array(weightages) / np.sum(np.array(weightages), axis=0) 
+                weights = weights/np.reshape(np.sum(weights, axis = 1), (weights.shape[0],1))
+
+                # multiplication
+                weights = weights * np.reshape(weightages, (weightages.shape[0], 1))
+                weights = np.sum(weights, axis = 0)
+                
+                # scale the parameters
+                gradients = self.scale_parameter(gradients, weights * len(gradients))
+
             # calculate the average of grad
             avg_grad = np.average(gradients, axis=0)
             new_parameters = subtract_params(new_parameters, avg_grad)
