@@ -332,7 +332,9 @@ class CustomSparkModel(object):
         elif self.mode == 'synchronous':
             worker = SparkWorker(yaml, parameters, train_config,
                                  optimizer, loss, metrics, custom)
-            gradients = rdd.mapPartitions(worker.train).map(lambda x: x[0]).collect()
+
+            call_backs = rdd.mapPartitions(worker.train)
+            gradients = call_backs.map(lambda x: x[0]).collect()
             
             print(len(gradients))
             new_parameters = self._master_network.get_weights()
@@ -344,8 +346,8 @@ class CustomSparkModel(object):
                 (sum(weightages) >= 0)): 
             
                 # collect accuracy and size
-                accs = np.array(rdd.mapPartitions(worker.train).map(lambda x: x[1]).collect(), dtype='float64')
-                sizes = np.array(rdd.mapPartitions(worker.train).map(lambda x: x[2]).collect(), dtype='float64')
+                accs = call_backs.map(lambda x: x[1]).collect()
+                sizes = call_backs.map(lambda x: x[2]).collect()
                 weights = np.array([accs, sizes])
 
                 # normalization 
