@@ -37,25 +37,15 @@ http://spark.apache.org/docs/latest/spark-standalone.html
 
 ## Data Preprocessing
 
-### 1. Python
+The [index](https://s3.amazonaws.com/google-landmark/metadata/train.csv) of landmark images is retrived from the training data set of [Google Landmark Dataset V2](https://github.com/cvdfoundation/google-landmark/blob/master/README.md#download-train-set). 
 
-Example of use:
+Screenshot of the first a few rows: 
+![alt text](./imgs/screenshot_train.png)
 
-`python preprocess.py -d train.csv -p D:\your\target\path`
+Images are downloaded from the provided url in the csv file. 1066 classes with images between 30-50 are randomly sampled to form the training set. Another 3-5 images from the same classes are sampled to form the test set.
 
-* -d/--data: the data file path.
-* -s/--data_set: `train`, `index`, or `test`.
-* -p/--path: the path where to download the images.
-* -c/--clear: `True` if the specified directory is to be cleared, otherwise `False`.
-* -u/--upper: The upper bound of number of images in each category.
-* -l/--lower: The lower bound of number of images in each category.
-* -m/--max_categories: The number of categories to be sampled.
-* -n/--num_machines: The number of machines.
-* -r/--random_state: The random state.
-
-For more details, refer to the [Source Code](https://github.com/CoderStellaJ/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess.py).
-
-
+* Source code for sampling the train set: [code](https://github.com/YingxuH/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess_train.ipynb).
+* Source code for sampling the test set: [code](https://github.com/YingxuH/CS4225-Big-Data-System-Project/blob/master/data_preprocessing/preprocess_test.ipynb).
 
 ### References
 1. [Spark structure post](http://site.clairvoyantsoft.com/understanding-resource-allocation-configurations-spark-application/)
