@@ -1,4 +1,4 @@
-# Spark-based Federated Learning for Landmark Recognition
+# Spark-based Distributed Learning for Landmark Recognition
 
 ## Parts of Spark
 ![alt text](./imgs/spark_structure.png)
@@ -21,7 +21,7 @@ An executor stays up for the duration of the Spark Application and runs the task
 The number of executors for a spark application can be specified inside the SparkConf
 or via the flag –num-executors from command-line.
 
-## Federated data
+## Distributed data
 different settings of `parallelize()` are implemented for data partitions 
 to examine how data size and distribution affects the results of federated learning 
 
