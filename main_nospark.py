@@ -1,13 +1,8 @@
-import tensorflow as tf
-import keras
 from keras import applications, Model
-from keras.layers import Dropout, Flatten, Dense, BatchNormalization
+from keras.layers import Flatten, Dense
 from keras.models import Sequential
 from keras import optimizers
-from sklearn.utils import shuffle
-from keras.callbacks import EarlyStopping
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 
 # Data directory
