@@ -278,7 +278,7 @@ class CustomSparkModel(object):
         return self._master_network.predict_classes(data)
 
     def fit(self, rdd, epochs=10, batch_size=32,
-            verbose=0, validation_split=0.1, weightages=(0.5, 0.5)):
+            verbose=0, validation_split=0.1, weightages=None):
         """
         Train an elephas model on an RDD. The Keras model configuration as specified
         in the elephas model is sent to Spark workers, abd each worker will be trained
