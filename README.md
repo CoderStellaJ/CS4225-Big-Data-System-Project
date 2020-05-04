@@ -1,4 +1,4 @@
-# Spark-based Federated Learning for Landmark Recognition
+# Spark-based Distributed Learning for Landmark Recognition
 
 ## Parts of Spark
 ![alt text](./imgs/spark_structure.png)
@@ -21,7 +21,7 @@ An executor stays up for the duration of the Spark Application and runs the task
 The number of executors for a spark application can be specified inside the SparkConf
 or via the flag –num-executors from command-line.
 
-## Federated data
+## Distributed data
 different settings of `parallelize()` are implemented for data partitions 
 to examine how data size and distribution affects the results of federated learning 
 
@@ -29,19 +29,8 @@ to examine how data size and distribution affects the results of federated learn
 https://medium.com/parrot-prediction/partitioning-in-apache-spark-8134ad840b0
 
 ## Deep learning
-Each worker contains a Resnet. Follow example code below to initiate and train the neural net:
-```buildoutcfg
-import worker
-TRAIN_DIR = 'path/to/train_data'
-VAL_DIR = 'path/to/val_data'
-model = worker.Worker(TRAIN_DIR, VAL_DIR)
-
-# First epoch
-loss, val_loss, weight_dict = model.train(new_weight=None)
-
-# Subsequent epochs
-loss, val_loss, weight_dict = model.train(new_weight=updated_weight)
-```
+* `main_nospark.py`: Perform centralized learning
+* `main_spark.py`: Perform Spark-based distributed learning
 
 ## Cluster in Azure
 http://spark.apache.org/docs/latest/spark-standalone.html
